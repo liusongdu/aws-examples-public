@@ -253,7 +253,7 @@ Resources:
             Id: ###
             S3OriginConfig:
               OriginAccessIdentity: origin-access-identity/cloudfront/###
-          - DomainName: skycone-web-static.s3.amazonaws.com
+          - DomainName: ###.s3.amazonaws.com
             Id: ###
             S3OriginConfig:
               OriginAccessIdentity: origin-access-identity/cloudfront/###
