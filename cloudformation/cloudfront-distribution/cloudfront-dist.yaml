@@ -1,0 +1,284 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  AlternateDomainNames:
+    Description: >-
+      CNAMEs (alternate domain names), if any, for the distribution. Example.
+      mydomain.com
+    Type: String
+Resources:
+  CloudFrontDistribution:
+    Type: 'AWS::CloudFront::Distribution'
+    Properties:
+      DistributionConfig:
+        CacheBehaviors:
+          - AllowedMethods:
+              - HEAD
+              - GET
+            DefaultTTL: 0
+            ForwardedValues:
+              Cookies:
+                Forward: none
+              QueryString: false
+            MaxTTL: 0
+            MinTTL: 0
+            PathPattern: ###/*
+            TargetOriginId: ###
+            ViewerProtocolPolicy: redirect-to-https
+          - PathPattern: ###/*
+            TargetOriginId: ###
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - HEAD
+              - GET
+              - OPTIONS
+              - PUT
+              - POST
+              - PATCH
+              - DELETE
+            ForwardedValues:
+              Cookies:
+                Forward: all
+              Headers:
+                - '*'
+              QueryString: true
+            MinTTL: 0
+            MaxTTL: 0
+            DefaultTTL: 0
+          - PathPattern: ###/*
+            TargetOriginId: ###
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - HEAD
+              - GET
+              - OPTIONS
+              - PUT
+              - POST
+              - PATCH
+              - DELETE
+            ForwardedValues:
+              Cookies:
+                Forward: all
+              Headers:
+                - '*'
+              QueryString: true
+            MinTTL: 0
+            MaxTTL: 0
+            DefaultTTL: 0
+          - PathPattern: ###/*
+            TargetOriginId: ###
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - HEAD
+              - GET
+            ForwardedValues:
+              Cookies:
+                Forward: none
+              QueryString: false
+            MinTTL: 0
+            MaxTTL: 20
+            DefaultTTL: 10
+          - PathPattern: ###/*
+            TargetOriginId: ###
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - HEAD
+              - GET
+            ForwardedValues:
+              Cookies:
+                Forward: none
+              QueryString: false
+            MinTTL: 0
+            MaxTTL: 20
+            DefaultTTL: 10
+          - PathPattern: ###/*
+            TargetOriginId: ###
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - HEAD
+              - GET
+            ForwardedValues:
+              Cookies:
+                Forward: none
+              QueryString: false
+            MinTTL: 0
+            MaxTTL: 20
+            DefaultTTL: 10
+          - PathPattern: ###/*
+            TargetOriginId: ###
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - HEAD
+              - GET
+            ForwardedValues:
+              Cookies:
+                Forward: none
+              QueryString: false
+            MinTTL: 0
+            MaxTTL: 20
+            DefaultTTL: 10
+          - PathPattern: ###/*
+            TargetOriginId: ###
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - HEAD
+              - GET
+            ForwardedValues:
+              Cookies:
+                Forward: none
+              QueryString: false
+            MinTTL: 0
+            MaxTTL: 20
+            DefaultTTL: 10
+          - PathPattern: ###/*
+            TargetOriginId: ###
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - HEAD
+              - GET
+            ForwardedValues:
+              Cookies:
+                Forward: none
+              QueryString: false
+            MinTTL: 0
+            MaxTTL: 20
+            DefaultTTL: 10
+          - PathPattern: ###/*
+            TargetOriginId: ###
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - HEAD
+              - GET
+            ForwardedValues:
+              Cookies:
+                Forward: none
+              QueryString: false
+            MinTTL: 0
+            MaxTTL: 20
+            DefaultTTL: 10
+          - PathPattern: ###.*
+            TargetOriginId: ###
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - HEAD
+              - GET
+            ForwardedValues:
+              Cookies:
+                Forward: none
+              QueryString: false
+            MinTTL: 0
+            MaxTTL: 20
+            DefaultTTL: 10
+          - PathPattern: ###*
+            TargetOriginId: ###
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - HEAD
+              - GET
+              - OPTIONS
+              - PUT
+              - POST
+              - PATCH
+              - DELETE
+            ForwardedValues:
+              Cookies:
+                Forward: all
+              Headers:
+                - Accept
+                - Accept-Encoding
+                - Accept-Language
+                - CloudFront-Is-Desktop-Viewer
+                - CloudFront-Is-Mobile-Viewer
+                - CloudFront-Is-Tablet-Viewer
+                - CloudFront-Viewer-Country
+                - Origin
+                - Referer
+              QueryString: true
+            MinTTL: 0
+            MaxTTL: 0
+            DefaultTTL: 0
+        DefaultCacheBehavior:
+          TargetOriginId: ###
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - HEAD
+            - GET
+            - OPTIONS
+            - PUT
+            - POST
+            - PATCH
+            - DELETE
+          MinTTL: 0
+          MaxTTL: 0
+          DefaultTTL: 0
+          ForwardedValues:
+            Cookies:
+              Forward: all
+            Headers:
+              - '*'
+            QueryString: true
+          LambdaFunctionAssociations:
+            - EventType: origin-request
+              LambdaFunctionARN: '###'
+        Enabled: true
+        Origins:
+          - DomainName: ###.s3-website.ap-northeast-2.amazonaws.com
+            Id: ###
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+          - DomainName: ###.execute-api.ap-northeast-2.amazonaws.com
+            Id: ###
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginKeepaliveTimeout: 60
+              OriginProtocolPolicy: https-only
+              OriginReadTimeout: 30
+              OriginSSLProtocols:
+                - TLSv1.2
+                - TLSv1.1
+                - TLSv1
+          - DomainName: ###.tianzhui.cloud
+            Id: ###
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginKeepaliveTimeout: 60
+              OriginProtocolPolicy: https-only
+              OriginReadTimeout: 30
+              OriginSSLProtocols:
+                - TLSv1.2
+                - TLSv1.1
+                - TLSv1
+          - DomainName: ###.s3.amazonaws.com
+            Id: ###
+            S3OriginConfig:
+              OriginAccessIdentity: origin-access-identity/cloudfront/###
+          - DomainName: skycone-web-static.s3.amazonaws.com
+            Id: ###
+            S3OriginConfig:
+              OriginAccessIdentity: origin-access-identity/cloudfront/###
+        PriceClass: PriceClass_200
+        Aliases:
+          - !Ref AlternateDomainNames
+        ViewerCertificate:
+          AcmCertificateArn: >-
+            ###
+          MinimumProtocolVersion: TLSv1.1_2016
+          SslSupportMethod: sni-only
+        HttpVersion: http2
+        IPV6Enabled: false
+        Logging:
+          Bucket: ###
+          IncludeCookies: true
+          Prefix: ####/
+        WebACLId: ###
+  CloudFrontDistributionAddon:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2
+      HostedZoneId: ###
+      Name: !Ref AlternateDomainNames
+      Type: A
