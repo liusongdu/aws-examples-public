@@ -1,10 +1,77 @@
 AWSTemplateFormatVersion: 2010-09-09
 Parameters:
+  VpcCidrBlock:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Description: VPC CIDR Block (eg 10.0.0.0/16)
+    Type: String
+  Subnet1CidrBlock:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Description: VPC CIDR Block (eg 10.0.0.0/16)
+    Type: String
+  Subnet2CidrBlock:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Description: VPC CIDR Block (eg 10.0.0.0/16)
+    Type: String
+  Subnet3CidrBlock:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Description: VPC CIDR Block (eg 10.0.0.0/16)
+    Type: String
+  Subnet4CidrBlock:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Description: VPC CIDR Block (eg 10.0.0.0/16)
+    Type: String
+  AvailabilityZone1:
+    Description: The Availability Zone to use for the first subnet.
+    Type: 'AWS::EC2::AvailabilityZone::Name'
+  AvailabilityZone2:
+    Description: The Availability Zone to use for the second subnet.
+    Type: 'AWS::EC2::AvailabilityZone::Name'
   AlternateDomainNames:
     Description: >-
       CNAMEs (alternate domain names), if any, for the distribution. Example.
       mydomain.com
     Type: String
+  ACMCertificateIdentifier:
+    Description: >-
+      The AWS Certificate Manager (ACM) certificate identifier. Do not include prefix
+      arn:aws:acm:us-east-1:${AWS::AccountId}:certificate/. For CloudFront distribution, the ACM certificate should be of us-east-1 region.
+    Type:        String
+  WebACLId:
+    Description: The AWS WAF web ACL ID.
+    Type:        String
+  CloudFrontLogBucket:
+    Description: The S3 bucket to store the access logs in, for example, myawslogbucket.s3.amazonaws.com.
+    Type:        String
+  AwsAccountId:
+    Description: The AWS account ID.
+    Type:        String
+  S3Oai:
+    Description: The CloudFront Origin Access Identity for accessing S3.
+    Type:        String
+  LambdaFunctionArn:
+    Description: The ARN of the Lambda function to associate with the default cache behavior.
+    Type:        String
+  Route53HostedZoneId:
+    Description: The Route 53 Hosted Zone ID for the CloudFront CNAME.
+    Type:        String
+  CustErrRespPagePath503:
+    Description: The CloudFront Custom Error Response Page Path for 503 and other HTTP Error Codes.
+    Type:        String
+  S3WebStatic:
+    Description: DNS name of the S3 bucket from which you want CloudFront to get web static files for this origin, for example, myawsbucket.s3.amazonaws.com
+    Type:        String
+  S3WebPolly:
+    Description: DNS name of the S3 bucket from which you want CloudFront to get audio files for this origin, for example, myawsbucket.s3.amazonaws.com
+    Type:        String
+  AlbDns:
+    Description: DNS name of the ALB.
+    Type:        String
+  ApiGwDns:
+    Description: DNS name of the API Gateway.
+    Type:        String
+  S3StaticWebHostingEndpoint:
+    Description: If you set up your bucket to be configured as a website endpoint, enter the S3 static website hosting endpoint for the bucket.
+    Type:        String
 Resources:
   CloudFrontDistribution:
     Type: 'AWS::CloudFront::Distribution'
@@ -21,31 +88,11 @@ Resources:
               QueryString: false
             MaxTTL: 0
             MinTTL: 0
-            PathPattern: ###/*
-            TargetOriginId: ###
+            PathPattern: Errors_5xx/*
+            TargetOriginId: 503-failover-s3staticwebsite
             ViewerProtocolPolicy: redirect-to-https
-          - PathPattern: ###/*
-            TargetOriginId: ###
-            ViewerProtocolPolicy: redirect-to-https
-            AllowedMethods:
-              - HEAD
-              - GET
-              - OPTIONS
-              - PUT
-              - POST
-              - PATCH
-              - DELETE
-            ForwardedValues:
-              Cookies:
-                Forward: all
-              Headers:
-                - '*'
-              QueryString: true
-            MinTTL: 0
-            MaxTTL: 0
-            DefaultTTL: 0
-          - PathPattern: ###/*
-            TargetOriginId: ###
+          - PathPattern: login/*
+            TargetOriginId: ELB-albSslBlog-190933517
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods:
               - HEAD
@@ -64,8 +111,28 @@ Resources:
             MinTTL: 0
             MaxTTL: 0
             DefaultTTL: 0
-          - PathPattern: ###/*
-            TargetOriginId: ###
+          - PathPattern: admin/*
+            TargetOriginId: ELB-albSslBlog-190933517
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - HEAD
+              - GET
+              - OPTIONS
+              - PUT
+              - POST
+              - PATCH
+              - DELETE
+            ForwardedValues:
+              Cookies:
+                Forward: all
+              Headers:
+                - '*'
+              QueryString: true
+            MinTTL: 0
+            MaxTTL: 0
+            DefaultTTL: 0
+          - PathPattern: img/*
+            TargetOriginId: S3-skycone-web-static
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods:
               - HEAD
@@ -77,8 +144,8 @@ Resources:
             MinTTL: 0
             MaxTTL: 20
             DefaultTTL: 10
-          - PathPattern: ###/*
-            TargetOriginId: ###
+          - PathPattern: video/*
+            TargetOriginId: S3-skycone-web-static
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods:
               - HEAD
@@ -90,8 +157,8 @@ Resources:
             MinTTL: 0
             MaxTTL: 20
             DefaultTTL: 10
-          - PathPattern: ###/*
-            TargetOriginId: ###
+          - PathPattern: css/*
+            TargetOriginId: S3-skycone-web-static
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods:
               - HEAD
@@ -103,8 +170,8 @@ Resources:
             MinTTL: 0
             MaxTTL: 20
             DefaultTTL: 10
-          - PathPattern: ###/*
-            TargetOriginId: ###
+          - PathPattern: syntaxhighlighter/*
+            TargetOriginId: S3-skycone-web-static
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods:
               - HEAD
@@ -116,8 +183,8 @@ Resources:
             MinTTL: 0
             MaxTTL: 20
             DefaultTTL: 10
-          - PathPattern: ###/*
-            TargetOriginId: ###
+          - PathPattern: fonts/*
+            TargetOriginId: S3-skycone-web-static
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods:
               - HEAD
@@ -129,8 +196,8 @@ Resources:
             MinTTL: 0
             MaxTTL: 20
             DefaultTTL: 10
-          - PathPattern: ###/*
-            TargetOriginId: ###
+          - PathPattern: js/*
+            TargetOriginId: S3-skycone-web-static
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods:
               - HEAD
@@ -142,8 +209,8 @@ Resources:
             MinTTL: 0
             MaxTTL: 20
             DefaultTTL: 10
-          - PathPattern: ###/*
-            TargetOriginId: ###
+          - PathPattern: tinymce/*
+            TargetOriginId: S3-skycone-web-static
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods:
               - HEAD
@@ -155,8 +222,8 @@ Resources:
             MinTTL: 0
             MaxTTL: 20
             DefaultTTL: 10
-          - PathPattern: ###.*
-            TargetOriginId: ###
+          - PathPattern: polly.*
+            TargetOriginId: S3-skycone-web-static
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods:
               - HEAD
@@ -168,8 +235,8 @@ Resources:
             MinTTL: 0
             MaxTTL: 20
             DefaultTTL: 10
-          - PathPattern: ###*
-            TargetOriginId: ###
+          - PathPattern: serverless*
+            TargetOriginId: Custom-blog-prod-serverless.tianzhui.cloud
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods:
               - HEAD
@@ -197,7 +264,7 @@ Resources:
             MaxTTL: 0
             DefaultTTL: 0
         DefaultCacheBehavior:
-          TargetOriginId: ###
+          TargetOriginId: ELB-albSslBlog-190933517
           ViewerProtocolPolicy: redirect-to-https
           AllowedMethods:
             - HEAD
@@ -218,15 +285,15 @@ Resources:
             QueryString: true
           LambdaFunctionAssociations:
             - EventType: origin-request
-              LambdaFunctionARN: '###'
+              LambdaFunctionARN: !Ref LambdaFunctionArn
         Enabled: true
         Origins:
-          - DomainName: ###.s3-website.ap-northeast-2.amazonaws.com
-            Id: ###
+          - DomainName: !Ref S3StaticWebHostingEndpoint
+            Id: 503-failover-s3staticwebsite
             CustomOriginConfig:
               OriginProtocolPolicy: http-only
-          - DomainName: ###.execute-api.ap-northeast-2.amazonaws.com
-            Id: ###
+          - DomainName: !Ref ApiGwDns
+            Id: Custom-blog-prod-serverless.tianzhui.cloud
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -237,8 +304,8 @@ Resources:
                 - TLSv1.2
                 - TLSv1.1
                 - TLSv1
-          - DomainName: ###.tianzhui.cloud
-            Id: ###
+          - DomainName: !Ref AlbDns
+            Id: ELB-albSslBlog-190933517
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -249,29 +316,68 @@ Resources:
                 - TLSv1.2
                 - TLSv1.1
                 - TLSv1
-          - DomainName: ###.s3.amazonaws.com
-            Id: ###
+          - DomainName: !Ref S3WebPolly
+            Id: S3-skycone-web-polly
             S3OriginConfig:
-              OriginAccessIdentity: origin-access-identity/cloudfront/###
-          - DomainName: ###.s3.amazonaws.com
-            Id: ###
+              OriginAccessIdentity: !Ref S3Oai
+          - DomainName: !Ref S3WebStatic
+            Id: S3-skycone-web-static
             S3OriginConfig:
-              OriginAccessIdentity: origin-access-identity/cloudfront/###
+              OriginAccessIdentity: !Ref S3Oai
+          - DomainName: !GetAtt Alb.DNSName
+            Id: Alb
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginKeepaliveTimeout: 60
+              OriginProtocolPolicy: https-only
+              OriginReadTimeout: 30
+              OriginSSLProtocols:
+                - TLSv1.2
+                - TLSv1.1
+                - TLSv1
         PriceClass: PriceClass_200
         Aliases:
           - !Ref AlternateDomainNames
         ViewerCertificate:
-          AcmCertificateArn: >-
-            ###
+          AcmCertificateArn: !Sub 'arn:aws:acm:us-east-1:${AwsAccountId}:certificate/${ACMCertificateIdentifier}'
           MinimumProtocolVersion: TLSv1.1_2016
           SslSupportMethod: sni-only
         HttpVersion: http2
         IPV6Enabled: false
         Logging:
-          Bucket: ###
+          Bucket: !Ref CloudFrontLogBucket
           IncludeCookies: true
-          Prefix: ####/
-        WebACLId: ###
+          Prefix: DistID_Blog_20190501/
+        WebACLId: !Ref WebACLId
+        CustomErrorResponses : 
+          - ErrorCachingMinTTL : 300
+            ErrorCode : 403
+            ResponseCode : 403
+            ResponsePagePath : !Ref CustErrRespPagePath503
+          - ErrorCachingMinTTL : 300
+            ErrorCode : 500
+            ResponseCode : 500
+            ResponsePagePath : !Ref CustErrRespPagePath503
+          - ErrorCachingMinTTL : 300
+            ErrorCode : 501
+            ResponseCode : 501
+            ResponsePagePath : !Ref CustErrRespPagePath503
+          - ErrorCachingMinTTL : 300
+            ErrorCode : 502
+            ResponseCode : 502
+            ResponsePagePath : !Ref CustErrRespPagePath503
+          - ErrorCachingMinTTL : 300
+            ErrorCode : 503
+            ResponseCode : 503
+            ResponsePagePath : !Ref CustErrRespPagePath503
+          - ErrorCachingMinTTL : 300
+            ErrorCode : 504
+            ResponseCode : 504
+            ResponsePagePath : !Ref CustErrRespPagePath503
+      Tags:
+        - Key: Env
+          Value: prod
   CloudFrontDistributionAddon:
     Type: 'AWS::Route53::RecordSet'
     Properties:
@@ -279,6 +385,159 @@ Resources:
         DNSName: !GetAtt CloudFrontDistribution.DomainName
         EvaluateTargetHealth: false
         HostedZoneId: Z2FDTNDATAQYW2
-      HostedZoneId: ###
+      HostedZoneId: !Ref Route53HostedZoneId
       Name: !Ref AlternateDomainNames
       Type: A
+      Comment : >-
+        This resource will be created right after the CloudFront Distribution resource is created, and then create the DNS records. And 
+        the CloudFront Distribution will be created successfully, even if it need the CNAME being resolved.
+  Vpc:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: !Ref VpcCidrBlock
+      Tags:
+        - Key: Name
+          Value: blogvpc
+        - Key: Env
+          Value: prod
+  Subnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone1
+      CidrBlock: !Ref Subnet1CidrBlock
+      VpcId: !Ref Vpc
+  Subnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone2
+      CidrBlock: !Ref Subnet2CidrBlock
+      VpcId: !Ref Vpc
+  Subnet3:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone1
+      CidrBlock: !Ref Subnet3CidrBlock
+      Tags:
+        - Key: Name
+          Value: getUrl-sample
+      VpcId: !Ref Vpc
+  Subnet4:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone2
+      CidrBlock: !Ref Subnet4CidrBlock
+      Tags:
+        - Key: Name
+          Value: getUrl-sample
+      VpcId: !Ref Vpc
+  RouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref Vpc
+  RouteInternet:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref RouteTable
+  SubnetRouteTableAssociationSubnet1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref RouteTable
+      SubnetId: !Ref Subnet1
+  SubnetRouteTableAssociationSubnet2:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref RouteTable
+      SubnetId: !Ref Subnet2
+  SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      VpcId: !Ref Vpc
+      GroupDescription: security group for the ALB used in this demo
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: allow HTTP traffic
+          IpProtocol: '-1'
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: allow HTTP traffic
+          FromPort: 80
+          ToPort: 80
+          IpProtocol: tcp
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties: {}
+  VPCGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref Vpc
+  Alb:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      IpAddressType: ipv4
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref SecurityGroup
+      Subnets:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      Type: application
+  AlbListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref Alb
+      Port: 80
+      Protocol: HTTP
+  TargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      TargetType: instance
+      Port : 80
+      Protocol : HTTP
+      VpcId : !Ref Vpc
+      Tags:
+        - Key: Env
+          Value: prod
+  Ec2SecGrpSsh:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: security group for EC2 instances SSH traffic
+      GroupName: ec2-ssh
+      VpcId: !Ref Vpc
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: allow all outbound traffic
+          IpProtocol: '-1'
+      SecurityGroupIngress:
+        - Description: allow incoming SSH traffic
+          CidrIp: "0.0.0.0/0"
+          FromPort: 22
+          ToPort: 22
+          IpProtocol: tcp
+  Ec2SecGrpHttp:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: security group for EC2 instances HTTP traffic
+      GroupName: ec2-http
+      VpcId: !Ref Vpc
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: allow all outbound traffic
+          IpProtocol: '-1'
+      SecurityGroupIngress:
+        - Description: allow incoming HTTP traffic from ALB to EC2 instance
+          SourceSecurityGroupId: !GetAtt SecurityGroup.GroupId
+          FromPort: 80
+          ToPort: 80
+          IpProtocol: tcp
+Outputs:
+  AlbDnsName:
+    Description: The public DNS name of the ALB.
+    Value: !GetAtt 
+      - Alb
+      - DNSName
