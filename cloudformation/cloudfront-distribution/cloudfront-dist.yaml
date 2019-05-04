@@ -572,6 +572,16 @@ Resources:
     Properties:
       RouteTableId: !Ref RouteTable
       SubnetId: !Ref Subnet2
+  SubnetRouteTableAssociationSubnet3:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref RouteTable
+      SubnetId: !Ref Subnet3
+  SubnetRouteTableAssociationSubnet4:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref RouteTable
+      SubnetId: !Ref Subnet4
   SecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
