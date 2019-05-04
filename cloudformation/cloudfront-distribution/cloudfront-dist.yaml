@@ -817,6 +817,47 @@ Resources:
       Tags : 
         - Key: Name
           Value: blog-rds-subnetgrp
+  RdsDbCluster:
+    Type: AWS::RDS::DBCluster
+    Properties : 
+      AvailabilityZones : 
+        - !Ref AvailabilityZone1
+      BacktrackWindow : 0
+      BackupRetentionPeriod : 7
+      DBClusterIdentifier : !Ref RdsClusterId
+      DBSubnetGroupName : !Ref RdsDbSubnetGrp
+      DatabaseName : !Ref RdsDbName
+      DeletionProtection : false
+      EnableCloudwatchLogsExports : 
+        - error
+        - general
+        - slowquery
+        - audit
+      Engine : aurora
+      EngineMode : provisioned
+      KmsKeyId : !Ref KmsKeyIdRds
+      Port : 3306
+      StorageEncrypted : true
+      SnapshotIdentifier : !Ref RdsSnapshotId
+      Tags : 
+        - Key: Name
+          Value: blog-rds-aurora-cluster
+      VpcSecurityGroupIds : 
+        - !GetAtt SecGrpRds.GroupId
+  RdsDbInstance:
+    Type: AWS::RDS::DBInstance
+    Properties : 
+      AvailabilityZone : !Ref AvailabilityZone1
+      DBClusterIdentifier : !Ref RdsDbCluster
+      DBInstanceClass : db.t3.small
+      DBInstanceIdentifier : !Ref RdsDbInstanceId
+      Engine : aurora
+      MultiAZ : false
+      PubliclyAccessible : false
+      StorageEncrypted : true
+      Tags : 
+        - Key: Name
+          Value: blog-rds-aurora-instance
 Outputs:
   AlbDnsName:
     Description: The public DNS name of the ALB.
