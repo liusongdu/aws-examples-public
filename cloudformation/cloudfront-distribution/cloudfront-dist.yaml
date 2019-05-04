@@ -6,19 +6,35 @@ Parameters:
     Type: String
   Subnet1CidrBlock:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
-    Description: VPC CIDR Block (eg 10.0.0.0/16)
+    Description: VPC CIDR Block (eg 10.0.0.0/16). For ALB.
     Type: String
   Subnet2CidrBlock:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
-    Description: VPC CIDR Block (eg 10.0.0.0/16)
+    Description: VPC CIDR Block (eg 10.0.0.0/16). For ALB.
     Type: String
   Subnet3CidrBlock:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
-    Description: VPC CIDR Block (eg 10.0.0.0/16)
+    Description: VPC CIDR Block (eg 10.0.0.0/16). For EC2.
     Type: String
   Subnet4CidrBlock:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
-    Description: VPC CIDR Block (eg 10.0.0.0/16)
+    Description: VPC CIDR Block (eg 10.0.0.0/16). For EC2.
+    Type: String
+  Subnet5CidrBlock:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Description: VPC CIDR Block (eg 10.0.0.0/16). For Lambda.
+    Type: String
+  Subnet6CidrBlock:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Description: VPC CIDR Block (eg 10.0.0.0/16). For Lambda.
+    Type: String
+  Subnet7CidrBlock:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Description: VPC CIDR Block (eg 10.0.0.0/16). For RDS.
+    Type: String
+  Subnet8CidrBlock:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Description: VPC CIDR Block (eg 10.0.0.0/16). For RDS.
     Type: String
   AvailabilityZone1:
     Description: The Availability Zone to use for the first subnet.
@@ -36,6 +52,10 @@ Parameters:
       The AWS Certificate Manager (ACM) certificate identifier. Do not include prefix
       arn:aws:acm:us-east-1:${AWS::AccountId}:certificate/. For CloudFront distribution, the ACM certificate should be of us-east-1 region.
     Type:        String
+  ACMCertificateIdentifierAlb:
+    Description: >-
+      The AWS Certificate Manager (ACM) certificate identifier for ALB. Do not include prefix arn:aws:acm:{AWS::Region}:${AWS::AccountId}:certificate/.
+    Type:        String
   WebACLId:
     Description: The AWS WAF web ACL ID.
     Type:        String
@@ -52,8 +72,8 @@ Parameters:
     Description: The ARN of the Lambda function to associate with the default cache behavior.
     Type:        String
   Route53HostedZoneId:
-    Description: The Route 53 Hosted Zone ID for the CloudFront CNAME.
-    Type:        String
+    Description: The Route 53 Hosted Zone ID.
+    Type:        AWS::Route53::HostedZone::Id
   CustErrRespPagePath503:
     Description: The CloudFront Custom Error Response Page Path for 503 and other HTTP Error Codes.
     Type:        String
@@ -64,7 +84,7 @@ Parameters:
     Description: DNS name of the S3 bucket from which you want CloudFront to get audio files for this origin, for example, myawsbucket.s3.amazonaws.com
     Type:        String
   AlbDns:
-    Description: DNS name of the ALB.
+    Description: DNS name of the ALB, for example, ***.us-east-1.elb.amazonaws.com.
     Type:        String
   ApiGwDns:
     Description: DNS name of the API Gateway.
@@ -72,6 +92,33 @@ Parameters:
   S3StaticWebHostingEndpoint:
     Description: If you set up your bucket to be configured as a website endpoint, enter the S3 static website hosting endpoint for the bucket.
     Type:        String
+  SsmRun:
+    Description: SSM Run Commands
+    Type:        String
+  BlogContainerReadyAmi:
+    Description: The pre-baked AMI for Blog containerized EC2.
+    Type:        AWS::EC2::Image::Id
+  RdsClusterId:
+    Description: RDS Aurora cluster ID
+    Type:        String
+  RdsDbName:
+    Description: RDS Aurora database name
+    Type:        String
+  RdsDbInstanceId:
+    Description: RDS Aurora database instance ID
+    Type:        String
+  KmsKeyIdRds:
+    Description: KMS Key ID for RDS
+    Type:        String
+  RdsSnapshotId:
+    Description: RDS snapshot ID
+    Type:        String
+  Ec2RoleName:
+    Description: EC2 role name
+    Type:        String
+  Ec2KeyName:
+    Description: EC2 keypair name
+    Type:        AWS::EC2::KeyPair::KeyName
 Resources:
   CloudFrontDistribution:
     Type: 'AWS::CloudFront::Distribution'
@@ -89,7 +136,7 @@ Resources:
             MaxTTL: 0
             MinTTL: 0
             PathPattern: Errors_5xx/*
-            TargetOriginId: 503-failover-s3staticwebsite
+            TargetOriginId: custom-s3staticwebsite-custerrpage
             ViewerProtocolPolicy: redirect-to-https
           - PathPattern: login/*
             TargetOriginId: ELB-albSslBlog-190933517
@@ -220,10 +267,10 @@ Resources:
                 Forward: none
               QueryString: false
             MinTTL: 0
-            MaxTTL: 20
-            DefaultTTL: 10
+            MaxTTL: 7200
+            DefaultTTL: 3600
           - PathPattern: polly.*
-            TargetOriginId: S3-skycone-web-static
+            TargetOriginId: s3-static-polly
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods:
               - HEAD
@@ -236,7 +283,7 @@ Resources:
             MaxTTL: 20
             DefaultTTL: 10
           - PathPattern: serverless*
-            TargetOriginId: Custom-blog-prod-serverless.tianzhui.cloud
+            TargetOriginId: custom-apigw-serverless
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods:
               - HEAD
@@ -264,7 +311,7 @@ Resources:
             MaxTTL: 0
             DefaultTTL: 0
         DefaultCacheBehavior:
-          TargetOriginId: ELB-albSslBlog-190933517
+          TargetOriginId: Alb
           ViewerProtocolPolicy: redirect-to-https
           AllowedMethods:
             - HEAD
@@ -289,11 +336,11 @@ Resources:
         Enabled: true
         Origins:
           - DomainName: !Ref S3StaticWebHostingEndpoint
-            Id: 503-failover-s3staticwebsite
+            Id: custom-s3staticwebsite-custerrpage
             CustomOriginConfig:
               OriginProtocolPolicy: http-only
           - DomainName: !Ref ApiGwDns
-            Id: Custom-blog-prod-serverless.tianzhui.cloud
+            Id: custom-apigw-serverless
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -317,7 +364,7 @@ Resources:
                 - TLSv1.1
                 - TLSv1
           - DomainName: !Ref S3WebPolly
-            Id: S3-skycone-web-polly
+            Id: s3-static-polly
             S3OriginConfig:
               OriginAccessIdentity: !Ref S3Oai
           - DomainName: !Ref S3WebStatic
@@ -378,7 +425,7 @@ Resources:
       Tags:
         - Key: Env
           Value: prod
-  CloudFrontDistributionAddon:
+  Route53RecordSetCloudFront:
     Type: 'AWS::Route53::RecordSet'
     Properties:
       AliasTarget:
@@ -391,10 +438,23 @@ Resources:
       Comment : >-
         This resource will be created right after the CloudFront Distribution resource is created, and then create the DNS records. And 
         the CloudFront Distribution will be created successfully, even if it need the CNAME being resolved.
+  Route53RecordSetAlb:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      AliasTarget:
+        DNSName: !GetAtt Alb.DNSName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z1H1FL5HABSF5
+      HostedZoneId: !Ref Route53HostedZoneId
+      Name: !Ref AlbDns
+      Type: A
+      Comment : ALB for the Blog
   Vpc:
     Type: 'AWS::EC2::VPC'
     Properties:
       CidrBlock: !Ref VpcCidrBlock
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
       Tags:
         - Key: Name
           Value: blogvpc
@@ -406,29 +466,91 @@ Resources:
       AvailabilityZone: !Ref AvailabilityZone1
       CidrBlock: !Ref Subnet1CidrBlock
       VpcId: !Ref Vpc
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: blogsubnet1
+        - Key: Env
+          Value: prod
   Subnet2:
     Type: 'AWS::EC2::Subnet'
     Properties:
       AvailabilityZone: !Ref AvailabilityZone2
       CidrBlock: !Ref Subnet2CidrBlock
       VpcId: !Ref Vpc
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: blogsubnet2
+        - Key: Env
+          Value: prod
   Subnet3:
     Type: 'AWS::EC2::Subnet'
     Properties:
       AvailabilityZone: !Ref AvailabilityZone1
       CidrBlock: !Ref Subnet3CidrBlock
+      VpcId: !Ref Vpc
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: getUrl-sample
-      VpcId: !Ref Vpc
+          Value: blogsubnet3
+        - Key: host-aws-service
+          Value: ec2
   Subnet4:
     Type: 'AWS::EC2::Subnet'
     Properties:
       AvailabilityZone: !Ref AvailabilityZone2
       CidrBlock: !Ref Subnet4CidrBlock
+      VpcId: !Ref Vpc
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: getUrl-sample
+          Value: blogsubnet4
+        - Key: host-aws-service
+          Value: ec2
+  Subnet5:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone1
+      CidrBlock: !Ref Subnet5CidrBlock
+      Tags:
+        - Key: Name
+          Value: blogsubnet5
+        - Key: host-aws-service
+          Value: lambda
+      VpcId: !Ref Vpc
+  Subnet6:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone2
+      CidrBlock: !Ref Subnet6CidrBlock
+      Tags:
+        - Key: Name
+          Value: blogsubnet6
+        - Key: host-aws-service
+          Value: lambda
+      VpcId: !Ref Vpc
+  Subnet7:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone1
+      CidrBlock: !Ref Subnet7CidrBlock
+      Tags:
+        - Key: Name
+          Value: blogsubnet7
+        - Key: host-aws-service
+          Value: rds
+      VpcId: !Ref Vpc
+  Subnet8:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone2
+      CidrBlock: !Ref Subnet8CidrBlock
+      Tags:
+        - Key: Name
+          Value: blogsubnet8
+        - Key: host-aws-service
+          Value: rds
       VpcId: !Ref Vpc
   RouteTable:
     Type: 'AWS::EC2::RouteTable'
@@ -465,6 +587,11 @@ Resources:
           FromPort: 80
           ToPort: 80
           IpProtocol: tcp
+        - CidrIp: 0.0.0.0/0
+          Description: allow HTTPS traffic
+          FromPort: 443
+          ToPort: 443
+          IpProtocol: tcp
   InternetGateway:
     Type: 'AWS::EC2::InternetGateway'
     Properties: {}
@@ -484,7 +611,7 @@ Resources:
         - !Ref Subnet1
         - !Ref Subnet2
       Type: application
-  AlbListener:
+  AlbListenerHttp:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
     Properties:
       DefaultActions:
@@ -493,6 +620,17 @@ Resources:
       LoadBalancerArn: !Ref Alb
       Port: 80
       Protocol: HTTP
+  AlbListenerHttps:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      Certificates : 
+        - CertificateArn : !Sub 'arn:aws:acm:${AWS::Region}:${AwsAccountId}:certificate/${ACMCertificateIdentifierAlb}'
+      DefaultActions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref Alb
+      Port: 443
+      Protocol: HTTPS
   TargetGroup:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     Properties:
@@ -500,6 +638,17 @@ Resources:
       Port : 80
       Protocol : HTTP
       VpcId : !Ref Vpc
+      HealthCheckIntervalSeconds : 61
+      HealthCheckPath : /healthcheck/
+      HealthCheckProtocol : HTTP
+      HealthCheckTimeoutSeconds : 60
+      HealthyThresholdCount : 2
+      UnhealthyThresholdCount : 10
+      Matcher : 
+        HttpCode : 200
+      Targets : 
+        - Id : !Ref InstanceBlog
+          Port : 80
       Tags:
         - Key: Env
           Value: prod
@@ -519,6 +668,17 @@ Resources:
           FromPort: 22
           ToPort: 22
           IpProtocol: tcp
+  SecurityGroupInternal:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !GetAtt 
+        - Ec2SecGrpSsh
+        - GroupId
+      Description: allow all internal traffic
+      SourceSecurityGroupId: !GetAtt 
+        - Ec2SecGrpSsh
+        - GroupId
+      IpProtocol: '-1'
   Ec2SecGrpHttp:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -535,6 +695,128 @@ Resources:
           FromPort: 80
           ToPort: 80
           IpProtocol: tcp
+  IamInstanceProfile : 
+    Type : AWS::IAM::InstanceProfile
+    Properties :
+      Roles : 
+        - !Ref Ec2RoleName
+  VPCEndpointSsm:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      VpcId: !Ref Vpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ssm
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds: 
+        - !Ref Subnet3
+        - !Ref Subnet4
+      SecurityGroupIds: 
+        - !Ref Ec2SecGrpHttp
+        - !Ref Ec2SecGrpSsh
+  InstanceBlog:
+    Type: AWS::EC2::Instance
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      InstanceType: t3.small
+      SecurityGroupIds:
+        - !Ref Ec2SecGrpHttp
+        - !Ref Ec2SecGrpSsh
+      SubnetId: !Ref Subnet3
+      ImageId: !Ref BlogContainerReadyAmi
+      AvailabilityZone: !Ref AvailabilityZone1
+      KeyName: !Ref Ec2KeyName
+      BlockDeviceMappings: 
+        - DeviceName: /dev/sda1
+          Ebs: 
+            VolumeType: gp2
+            DeleteOnTermination: true
+            VolumeSize: 8
+      IamInstanceProfile : !Ref IamInstanceProfile
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+            EC2_INSTANCE_ID="`wget -q -O - http://169.254.169.254/latest/meta-data/instance-id`"
+            aws ssm send-command --document-name ${SsmRun} --document-version "1" --targets "Key=instanceids,Values=$EC2_INSTANCE_ID" --parameters '{}' --timeout-seconds 600 --max-concurrency "50" --max-errors "0" --region ${AWS::Region}
+            # Signal the status from this instance
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource InstanceBlog --region ${AWS::Region}
+      Tags:
+        - Key: Name
+          Value: blog
+        - Key: Schedule
+          Value: tag-all-days-during-the-day
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT5M"
+  SecGrpLambda:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Security group for Lambda. No need to specify ingress and egress rules for this security group.
+      GroupName: lambda
+      VpcId: !Ref Vpc
+  SecGrpRds:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: security group for RDS Aurora cluster
+      GroupName: rds
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - Description: allow incoming MySQL traffic from Ec2SecGrpHttp security group
+          SourceSecurityGroupId: !GetAtt 
+            - Ec2SecGrpHttp
+            - GroupId
+          FromPort: 3306
+          ToPort: 3306
+          IpProtocol: tcp
+  SecurityGroupRdsInternal:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !GetAtt 
+        - SecGrpRds
+        - GroupId
+      Description: allow all internal traffic for the RDS security group
+      SourceSecurityGroupId: !GetAtt 
+        - SecGrpRds
+        - GroupId
+      IpProtocol: '-1'
+  SecurityGroupRdsIngressFromEc2:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !GetAtt 
+        - SecGrpRds
+        - GroupId
+      Description: allow incoming MySQL traffic from EC2 security group
+      SourceSecurityGroupId: !GetAtt 
+        - Ec2SecGrpSsh
+        - GroupId
+      FromPort: 3306
+      ToPort: 3306
+      IpProtocol: tcp
+  SecurityGroupRdsIngressFromLambda:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !GetAtt 
+        - SecGrpRds
+        - GroupId
+      Description: allow incoming MySQL traffic from Lambda security group
+      SourceSecurityGroupId: !GetAtt 
+        - SecGrpLambda
+        - GroupId
+      FromPort: 3306
+      ToPort: 3306
+      IpProtocol: tcp
+  RdsDbSubnetGrp:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties : 
+      DBSubnetGroupDescription : RDS Aurora cluster subnet group
+      DBSubnetGroupName : rdsaurora-subnetgrp
+      SubnetIds : 
+        - !Ref Subnet7
+        - !Ref Subnet8
+      Tags : 
+        - Key: Name
+          Value: blog-rds-subnetgrp
 Outputs:
   AlbDnsName:
     Description: The public DNS name of the ALB.
